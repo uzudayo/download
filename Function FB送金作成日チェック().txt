@@ -1,0 +1,51 @@
+Function FB送金作成日チェック()
+
+    Dim cn As ADODB.Connection
+    Dim In1 As ADODB.Recordset
+    Dim cmd As New ADODB.Command
+
+    Dim fn As String, FB_Date As Date, FB_Date2 As String
+    Dim Msg_string As String, e_flg As Integer, cnt As Long, ret, rc
+    
+    Dim FSO As Object
+    Set FSO = CreateObject("Scripting.FileSystemObject")
+
+'-----------------------------------
+'    fn = "\\showashell.local\FHS\Oil Products\SBIS MinamiOoi\Projects\CS_Work\共通_FB送金データ\FB送金データ\FBデータ.txt"
+    fn = Get_Arg(35, "FILE", 1)
+'-------------------------------------------------------------------
+    rc = All_Delete("T_FB送金インポート")
+    DoCmd.TransferText acImportDelim, "FBデータ インポート定義", "T_FB送金インポート", fn, False
+'-------------------------------------------------------------------
+    FB_Date = FSO.GetFile(fn).DateLastModified
+'-----------------------------------
+    Set FSO = Nothing
+'-----------------------------------
+    Set cn = CurrentProject.Connection
+    Set In1 = New ADODB.Recordset
+'-----------------------------------
+    In1.Open "H_FB送金①_振込指定日", cn, adOpenKeyset, adLockOptimistic
+'-----------------------------------
+    If Not In1.EOF Then
+        FB_Date2 = Format(Mid(In1![振込指定日], 1, 2), "#0") & "月" & Format(Mid(In1![振込指定日], 3, 2), "#0") & "日"
+    End If
+    In1.Close: Set In1 = Nothing
+    cn.Close: Set cn = Nothing
+'-----------------------------------
+    Msg_string = "FBファイル更新日:" & vbTab & FB_Date & vbNewLine & _
+                 "振込指定日:" & vbTab & FB_Date2 & vbNewLine & vbNewLine & "継続しますか？"
+    
+    If vbYes = MsgBox(Msg_string, vbYesNo, "FB振込通知") Then
+        e_flg = 0
+    Else
+        e_flg = 1
+    End If
+        
+    If e_flg = 0 Then
+        DoCmd.RunMacro "H_1 FB振込通知_スクリプト"
+'        MsgBox "処理実行(TEST)", vbInformation, "FB振込通知"
+    Else
+        MsgBox "中断しました", vbInformation, "FB振込通知"
+    End If
+
+End Function
